@@ -38,7 +38,7 @@ from main_module import main
 # In[1]:
 
 
-folder = "data"
+folder = "/Users/klj9278/Library/CloudStorage/Box-Box/Research kaley/abm exploration/collective_foraging/data"
 radius_interaction = [1]
 
 
@@ -48,11 +48,10 @@ radius_interaction = [1]
 
 
 def draw(w):
-    
 #     from main_module import main
     fig = plt.figure(figsize=(9,9))
     ax = fig.subplots(1,1)
-
+    display(fig)
     plt.ion()
     ax.set_facecolor('white')
     fig.show()
@@ -66,11 +65,12 @@ def draw(w):
     tick_speed = w.kwargs['tick_speed']
     runs = float(w.kwargs['runs'])
     save = w.kwargs['save']
-#     print(save)
+    print('Saving? ', save, flush=True)
 #     runs = 10
  
 
     var_list = [trees[0], agents[0], betas[0], mu_range[0], alpha_range[0]]
+    print('varlist:', trees[0], agents[0], betas[0], mu_range[0], alpha_range[0])
     string_ints = [str(int) for int in var_list]
     z = 0
     filename = "_".join(string_ints)
@@ -86,6 +86,8 @@ def draw(w):
         paramlist = list(itertools.product(trees,agents,betas,radius_interaction, mu_range, alpha_range))
         print(paramlist[0])
         result = main(paramlist[0], fig, ax, tick_speed)
+        fig.canvas.draw()
+        fig.canvas.flush_events()  # flush each frame
         if save == True:
             f2.write(result)
         z = z+1
