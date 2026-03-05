@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>main_module_flow.html</title>
+        <style type="text/css">
+          .end-element { fill : #FFCCFF; }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.3.0/raphael.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.17.1/flowchart.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
+        <!-- <script src="../release/flowchart.min.js"></script> -->
+        <script>
+
+            window.onload = function () {
+                var btn = document.getElementById("run"),
+                    cd = document.getElementById("code"),
+                    chart;
+                    
+                (btn.onclick = function () {
+                    var code = cd.value;
+
+                    if (chart) {
+                      chart.clean();
+                    }
+
+                    chart = flowchart.parse(code);
+                    chart.drawSVG('canvas', {
+                      'x': 0,
+                      'y': 0,
+                      'line-width': 3,
+                      //'maxWidth': 15,//ensures the flowcharts fits within a certain width
+                      'line-length': 50,
+                      'text-margin': 10,
+                      'font-size': 14,
+                      'font': 'normal',
+                      'font-family': 'Helvetica',
+                      'font-weight': 'normal',
+                      'font-color': 'black',
+                      'line-color': 'black',
+                      'element-color': 'black',
+                      'fill': 'white',
+                      'yes-text': 'yes',
+                      'no-text': 'no',
+                      'arrow-end': 'block',
+                      'scale': 1,
+                      'symbols': {
+                        'start': {
+                          'font-size': 14,
+                          'font-color': 'yellow',
+                          'element-color': 'blue',
+                          'fill': 'green',
+                          'class': 'start-element'
+                        },
+                        'inputoutput': {
+                          'font-color': 'black',
+                          'element-color': 'black',
+                          'fill': 'bisque'
+                        },
+                        'operation': {
+                          'font-color': 'black',
+                          'element-color': 'black',
+                          'fill': 'linen'
+                        },
+                        'subroutine': {
+                          'font-color': 'black',
+                          'element-color': 'blue',
+                          'fill': 'lightgreen'
+                        },
+                        'condition': {
+                          'font-color': 'red',
+                          'element-color': 'black',
+                          'fill': 'yellow'
+                        },
+                        'end':{
+                          'font-size': 20,
+                          'class': 'end-element'
+                        }
+                      },
+                      'flowstate' : {
+                        //'past' : { 'fill' : '#CCCCCC', 'font-size' : 12},
+                        //'current' : {'fill' : 'yellow', 'font-color' : 'red', 'font-weight' : 'bold'},
+                        //'future' : { 'fill' : '#FFFF99'},
+                        'request' : { 'fill' : 'blue'},
+                        'invalid': {'fill' : '#444444'},
+                        'approved' : { 'fill' : '#58C4A3', 'font-size' : 12, 'yes-text' : 'APPROVED', 'no-text' : 'n/a' },
+                        'rejected' : { 'fill' : '#C45879', 'font-size' : 12, 'yes-text' : 'n/a', 'no-text' : 'REJECTED' }
+                      }
+                    });
+                    //create base64 encoding of SVG to generate download link for title(without html or htm).SVG
+                    var currentCanvasDIV = document.getElementById('canvas')
+                    var currentDrawSVG = currentCanvasDIV.innerHTML.replaceAll('ë','e');
+
+                    const OUTsvgBASE64 = btoa(currentDrawSVG)
+                    doctitle = document.title.replace('.html','');
+                    doctitle = doctitle.replace('.htm','');
+
+
+                    var currentCanvasDIV = document.getElementById('canvas')
+                    var currentDrawSVG = currentCanvasDIV.innerHTML.replaceAll('ë','e');
+                    svgSource = currentDrawSVG
+                    svgXML = currentDrawSVG;
+                    // Use SVG Height and Width from the SVG XML to set canvas size
+                    svgXMLsubstringHeight = svgXML.substring(svgXML.indexOf('height='), svgXML.indexOf('version='));
+                    svgXMLsubstringWidth = svgXML.substring(svgXML.indexOf('width='), svgXML.indexOf('xmlns='));
+                    HeightValue = svgXMLsubstringHeight.substring(svgXMLsubstringHeight.indexOf('"')+1,svgXMLsubstringHeight.lastIndexOf('"'));
+                    WidthValue = svgXMLsubstringWidth.substring(svgXMLsubstringWidth.indexOf('"')+1,svgXMLsubstringWidth.lastIndexOf('"'));
+                    HeightValueInt = Math.round(HeightValue)
+                    WidthValueInt = Math.round(WidthValue)
+                    // setup input for base64SvgToBase64Png
+                    let svgSrc = "data:image/svg+xml;base64,"+OUTsvgBASE64;
+                    var pngBase
+                    imageUtil.base64SvgToBase64Png(svgSrc, WidthValueInt, HeightValueInt).then(pngSrc => {
+                    pngBase = pngSrc
+                    // output download link for base64 PNG converted on download from base64
+                    var pngOutHtml = `<a href="${pngBase}" download="${doctitle}.png">PNG - Click here to download current rendered flowchart as ${doctitle}.png</a>`
+                    document.getElementById("pngbase64").innerHTML=pngOutHtml;
+                    });    
+                    // output download link for base64 SVG converted on download from base64
+                    var svgOutHtml = `<a href="data:image/svg+xml;base64,${OUTsvgBASE64}" download=${doctitle}.svg>SVG - Click here to download current rendered flowchart as ${doctitle}.svg</a> `
+                        document.getElementById("svgbase64").innerHTML=svgOutHtml;
+                    })();
+
+                            };
+                 
+
+// derived from https://stackoverflow.com/a/64800570
+// we need to use web browser canvas to generate a image. In this case png
+let imageUtil = {};
+/**
+ * converts a base64 encoded data url SVG image to a PNG image
+ * @param originalBase64 data url of svg image
+ * @param width target width in pixel of PNG image
+ * @param secondTry used internally to prevent endless recursion
+ * @return {Promise<unknown>} resolves to png data url of the image
+ */
+imageUtil.base64SvgToBase64Png = function (originalBase64, width, height, secondTry) {
+    return new Promise(resolve => {
+        let img = document.createElement('img');
+        img.onload = function () {
+            if (!secondTry && (img.naturalWidth === 0 || img.naturalHeight === 0)) {
+                let svgDoc = base64ToSvgDocument(originalBase64);
+                let fixedDoc = fixSvgDocumentFF(svgDoc);
+                return imageUtil.base64SvgToBase64Png(svgDocumentToBase64(fixedDoc), width, height, true).then(result => {
+                    resolve(result);
+                });
+            }
+            //document.body.appendChild(img);
+            let canvas2 = document.createElement("canvas");
+            //document.body.removeChild(img);
+            canvas2.width = width;
+            canvas2.height = height;
+            let ctx = canvas2.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas2.width, canvas2.height);
+            try {
+                let data = canvas2.toDataURL('image/png');
+                resolve(data);
+            } catch (e) {
+                resolve(null);
+            }
+        };
+        img.src = originalBase64;
+    });
+}
+
+//needed because Firefox doesn't correctly handle SVG with size = 0, see https://bugzilla.mozilla.org/show_bug.cgi?id=700533
+function fixSvgDocumentFF(svgDocument) {
+    try {
+        let widthInt = parseInt(svgDocument.documentElement.width.baseVal.value) || 500;
+        let heightInt = parseInt(svgDocument.documentElement.height.baseVal.value) || 500;
+        svgDocument.documentElement.width.baseVal.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, widthInt);
+        svgDocument.documentElement.height.baseVal.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, heightInt);
+        return svgDocument;
+    } catch (e) {
+        return svgDocument;
+    }
+}
+
+function svgDocumentToBase64(svgDocument) {
+    try {
+        let base64EncodedSVG = btoa(new XMLSerializer().serializeToString(svgDocument));
+        return 'data:image/svg+xml;base64,' + base64EncodedSVG;
+    } catch (e) {
+        return null;
+    }
+}
+
+function base64ToSvgDocument(base64) {
+    let svg = atob(base64.substring(base64.indexOf('base64,') + 7));
+    svg = svg.substring(svg.indexOf('<svg'));
+    let parser = new DOMParser();
+    return parser.parseFromString(svg, "image/svg+xml");
+} 
+        </script>
+
+        <script>
+            function HelpText() {
+              var x = document.getElementById("HelpTextBlock");
+              if (x.style.display === "none") {
+                x.style.display = "block";
+              } else {
+                x.style.display = "none";
+              }
+            }
+        </script>
+    </head>
+    <body>
+        <div><textarea id="code" style="width: 100%;" rows="11">op2=>operation: from __future__ import division
+op4=>operation: import random
+op6=>operation: import math
+op8=>operation: import os
+op10=>operation: import shutil
+op12=>operation: import numpy as np
+op14=>operation: from scipy import spatial as st
+op16=>operation: import matplotlib.pyplot as plt
+op18=>operation: import matplotlib.ticker as ticker
+op20=>operation: from periodic_kdtree import PeriodicCKDTree
+op22=>operation: from sklearn.cluster import DBSCAN
+op24=>operation: from scipy import stats as sts
+op26=>operation: import warnings
+sub28=>subroutine: warnings.filterwarnings('ignore', category=DeprecationWarning)
+op30=>operation: import pylab as pl
+op32=>operation: from IPython import display
+op34=>operation: import sys
+op36=>operation: import copy
+op38=>operation: import itertools
+op40=>operation: digits = 3
+op42=>operation: radius_interaction = [1]
+op44=>operation: epsilon = 0.001
+op46=>operation: bounds = np.array([1, 1])
+op48=>operation: minstep = 0.001
+op50=>operation: class Grid():
+
+    def __init__(self, radiuss, tc, agents, beta, l, a):
+        self.num_agents = agents
+        self.num_targets = tc
+        self.beta = beta
+        self.crea_targets()
+        self.crea_agents(l, a)
+        self.rad = radiuss
+        self.deleted_targets = 0
+
+    def update(self):
+        z = 0
+        r = self.rad
+        while (z < len(agents_list)):
+            agents_list[z].update(agents_list, r)
+            z = (z + 1)
+        self.clustering(agents_list)
+
+    def crea_targets(self):
+        self.size = 1
+        global targets_list
+        targets_list = []
+        all_x = []
+        all_y = []
+        for i in range(1, 21):
+            x = np.round((random.uniform(0, 1) % self.size), digits)
+            y = np.round((random.uniform(0, 1) % self.size), digits)
+            all_x.append(x)
+            all_y.append(y)
+            num = i
+            targets_list.append(Patch(x, y, num))
+        self.make_targets(all_x, all_y, num)
+        coord_targets = np.column_stack((all_x, all_y))
+        Grid.kdtree = PeriodicCKDTree(bounds, coord_targets)
+        Grid.deleted_targets = 0
+        Grid.cluster_centroid = np.empty((0, 2), float)
+        Grid.cluster_time = 0
+
+    def spawntargets(self):
+        i = random.choice(range(len(targets_list)))
+        seeder_x = targets_list[i].x
+        seeder_y = targets_list[i].y
+        theta = random.uniform(0, 360)
+        theta = (theta * (math.pi / 180))
+        dis = self.levy()
+        x = np.round((seeder_x + (dis * np.cos(theta))), digits)
+        y = np.round((seeder_y + (dis * np.sin(theta))), digits)
+        if (x > 1):
+            x = abs((1 - x))
+        if (y > 1):
+            y = abs((1 - y))
+        if (x < 0):
+            x = abs((1 - abs(x)))
+        if (y < 0):
+            y = abs((1 - abs(y)))
+        return (x, y)
+
+    def levy(self):
+        xf = 0.1
+        xi = 0.001
+        mu = (- self.beta)
+        m = (mu + 1)
+        x = (((((xf ** m) - (xi ** m)) * random.uniform(0, 1)) + (xi ** m)) ** (1 / m))
+        return x
+
+    def make_targets(self, all_x, all_y, num):
+        num = (num + 1)
+        while (len(targets_list) < (self.num_targets + 1)):
+            (x, y) = self.spawntargets()
+            all_x.append(x)
+            all_y.append(y)
+            targets_list.append(Patch(x, y, num))
+            num = (num + 1)
+            if (len(targets_list) == self.num_targets):
+                break
+
+    def crea_agents(self, l, a):
+        z = 1
+        global agents_list
+        agents_list = []
+        global cluster_list
+        cluster_list = []
+        while (len(agents_list) < self.num_agents):
+            x = random.uniform(0, 1)
+            y = random.uniform(0, 1)
+            levy = l
+            alpha = a
+            num = z
+            agents_list.append(Agent(num, x, y, levy, alpha))
+            z = (z + 1)
+
+    def findwhichtarget(self):
+        (dis, indices) = Grid.kdtree.query([self.x, self.y], k=1000, distance_upper_bound=minstep)
+        if (np.isfinite(dis).any() == False):
+            return None
+        else:
+            size = np.count_nonzero((~ np.isinf(dis)))
+            if (size > 1):
+                k = 0
+                while (k < size):
+                    i = indices[k]
+                    if (targets_list[i].food == 1):
+                        targets_list[i].food = 0
+                        Grid.deleted_targets += 1
+                        return targets_list[i].num
+                    k = (k + 1)
+                return None
+            elif (targets_list[0].food == 1):
+                targets_list[0].food = 0
+                Grid.deleted_targets += 1
+                return targets_list[0].num
+            else:
+                return None
+
+    def clustering(self, listt):
+        epsilon = 0.1
+        cutoff = epsilon
+        global total_clusters
+        total_clusters = []
+        global cluster_size
+        global avg_sep
+        global cluster_list
+        i = 0
+        old_cluster_list = copy.deepcopy(cluster_list)
+        all_x = []
+        all_y = []
+        active = []
+        centers = []
+        all_num = []
+        while (i < len(listt)):
+            all_x.append(listt[i].x)
+            all_y.append(listt[i].y)
+            all_num.append(listt[i].num)
+            i = (i + 1)
+        matrix = np.column_stack((all_x, all_y))
+        sep = st.distance.pdist(matrix)
+        sep = np.where((sep > 0.5), abs((1 - sep)), sep)
+        avg_sep += np.mean(sep)
+        square = self.periodic_distance(matrix)
+        db = DBSCAN(eps=epsilon, min_samples=3, metric='precomputed').fit(square)
+        cluster_labels = db.labels_
+        num_clusters = (len(set(cluster_labels)) - (1 if ((- 1) in cluster_labels) else 0))
+        if (num_clusters > 0):
+            total_clusters.append(num_clusters)
+            counts = np.bincount(cluster_labels[(cluster_labels >= 0)])
+            for z in range(num_clusters):
+                points_z = matrix[((cluster_labels == z), :)]
+                center = points_z.mean(axis=0)
+                a = center
+                centers.append(a)
+                switch = False
+                if (len(old_cluster_list) > 0):
+                    if any(((x.status == True) for x in old_cluster_list)):
+                        for k in range(len(old_cluster_list)):
+                            if (old_cluster_list[k].status == True):
+                                dis = st.distance.euclidean(old_cluster_list[k].centroid, a)
+                                if (dis > 0.5):
+                                    dis = (1 - dis)
+                                if (dis <= cutoff):
+                                    cluster_list[k].time += 1
+                                    cluster_list[k].size = counts[z]
+                                    cluster_list[k].status = True
+                                    cluster_list[k].centroid = a
+                                    active.append(k)
+                                    switch = True
+                                    break
+                                else:
+                                    switch = False
+                        if (switch == False):
+                            self.make_new_cluster(a, counts[z])
+                    else:
+                        self.make_new_cluster(a, counts[z])
+                else:
+                    self.make_new_cluster(a, counts[z])
+            all_clusters = list(range(len(old_cluster_list)))
+            not_active = list((set(all_clusters) - set(active)))
+            for s in not_active:
+                cluster_list[s].status = False
+        else:
+            for x in cluster_list:
+                x.status = False
+
+    def make_new_cluster(self, centroid, size):
+        num = (len(cluster_list) + 1)
+        time = 1
+        status = True
+        cluster_list.append(Cluster(num, size, centroid, time, status))
+
+    def periodic_distance(self, X):
+        L = 1
+        for d in range(X.shape[1]):
+            pd = st.distance.pdist(X[(:, d)].reshape(X.shape[0], 1))
+            pd[(pd > (L * 0.5))] -= L
+            try:
+                total += (pd ** 2)
+            except:
+                total = (pd ** 2)
+        total = pl.sqrt(total)
+        square = st.distance.squareform(total)
+        return square
+
+    def output(self, i):
+        avg_eff = np.mean([c.eff for c in agents_list])
+        avg_dis = np.mean([c.tdis for c in agents_list])
+        avg_en = np.mean([c.food for c in agents_list])
+        avg_size = np.mean([c.size for c in cluster_list])
+        avg_time = np.mean([c.time for c in cluster_list])
+        all_clusters = len(cluster_list)
+        avg_simul_clusters = np.mean(total_clusters)
+        stringdis = (((((((((((((str(avg_en) + ',') + str(avg_dis)) + ',') + str(avg_eff)) + ',') + str(avg_size)) + ',') + str(avg_time)) + ',') + str(all_clusters)) + ',') + str(avg_simul_clusters)) + '\n')
+        return stringdis
+op52=>operation: class Cluster():
+
+    def __init__(self, num, size, centroid, time, status):
+        self.num = num
+        self.centroid = centroid
+        self.time = 1
+        self.status = True
+        self.size = size
+op54=>operation: class Patch():
+
+    def __init__(self, x, y, num):
+        self.x = x
+        self.y = y
+        self.num = num
+        self.food = 1
+op56=>operation: class Agent():
+
+    def __init__(self, num, x, y, levy, alpha):
+        self.num = num
+        self.x = x
+        self.y = y
+        self.mu = levy
+        self.alpha = alpha
+        self.food = 0
+        self.target = 0
+        self.eff = 0
+        self.rw_switch = 0
+        self.tw_switch = 0
+        self.d = 0
+        self.theta = 0
+        self.tdis = 1
+
+    def update(self, agents_list, r):
+        if (self.food == 0):
+            self.eff = 0
+        else:
+            self.eff = (self.food / self.tdis)
+        num = Grid.findwhichtarget(self)
+        if (num != None):
+            self.target = num
+            self.food = (self.food + 1)
+            self.rw_switch = 0
+            self.tw_switch = 0
+            self.walk = 0
+        else:
+            self.target = 0
+            if (self.tw_switch == 1):
+                newtarget = self.check_forothers(agents_list, r)
+                if (newtarget != None):
+                    if (self.d > 0):
+                        self.step()
+                        if (self.d <= 0):
+                            self.tw_switch = 0
+                    else:
+                        self.tw_switch = 0
+                elif (self.d > 0):
+                    self.step()
+                    if (self.d <= 0):
+                        self.tw_switch = 0
+                else:
+                    self.tw_switch = 0
+            elif ((self.tw_switch == 0) and (self.rw_switch == 0)):
+                newtarget = self.check_forothers(agents_list, r)
+                if (newtarget != None):
+                    self.tw_switch = 1
+                    self.rw_switch = 0
+                    if (self.d > 0):
+                        self.step()
+                        if (self.d <= 0):
+                            self.tw_switch = 0
+                    else:
+                        self.tw_switch = 0
+                else:
+                    rw_update = self.rw()
+                    self.d = rw_update[0]
+                    self.theta = rw_update[1]
+                    if (self.d > 0):
+                        self.step()
+                        self.rw_switch = 1
+                        if (self.d <= 0):
+                            self.rw_switch = 0
+                    else:
+                        self.rw_switch = 0
+            elif (self.rw_switch == 1):
+                newtarget = self.check_forothers(agents_list, r)
+                if (newtarget != None):
+                    self.tw_switch = 1
+                    self.rw_switch = 0
+                    if (self.d > 0):
+                        self.step()
+                        if (self.d <= 0):
+                            self.tw_switch = 0
+                    else:
+                        self.tw_switch = 0
+                elif (self.d > 0):
+                    self.step()
+                    if (self.d <= 0):
+                        self.rw_switch = 0
+                else:
+                    self.rw_switch = 0
+
+    def calc_dist(self):
+        xf = 1
+        if (self.mu == 'random'):
+            x = minstep
+            return x
+        elif (self.mu == 'straight'):
+            x = 1000000000
+            return x
+        else:
+            xi = minstep
+            mu = (- self.mu)
+            m = (mu + 1)
+            x = (((((xf ** m) - (xi ** m)) * random.uniform(0, 1)) + (xi ** m)) ** (1 / m))
+            if (self.mu == 'random'):
+                x = minstep
+            return x
+
+    def rw(self):
+        r = self.calc_dist()
+        theta = random.uniform(0, 360)
+        return (r, theta)
+
+    def step(self):
+        if (self.d <= minstep):
+            r = self.d
+        else:
+            r = minstep
+        theta = (self.theta * (math.pi / 180))
+        x2 = (self.x + (r * np.cos(theta)))
+        y2 = (self.y + (r * np.sin(theta)))
+        if (x2 >= 1):
+            x2 = abs((1 - x2))
+        if (y2 >= 1):
+            y2 = abs((1 - y2))
+        if (x2 <= 0):
+            x2 = abs((1 - abs(x2)))
+        if (y2 <= 0):
+            y2 = abs((1 - abs(y2)))
+        self.x = x2
+        self.y = y2
+        self.d = (self.d - r)
+        self.tdis = (self.tdis + r)
+
+    def check_forothers(self, agents_list, r):
+        z = 0
+        all_x = []
+        all_y = []
+        creepable = []
+        coord_others = []
+        indices = []
+        i = 0
+        for i in range(len(agents_list)):
+            if (agents_list[i].target != 0):
+                creepable.append(i)
+        if (len(creepable) > 0):
+            z = 0
+            for z in creepable:
+                all_x.append(agents_list[z].x)
+                all_y.append(agents_list[z].y)
+            coord_others = np.column_stack((all_x, all_y))
+            (dis, indices) = self.distance(coord_others, (self.x, self.y), r)
+            if (math.isinf(dis) == True):
+                return None
+            else:
+                dis2 = (dis * 1000)
+                chance = random.uniform(0, 1)
+                ni = creepable[indices]
+                if (self.tw_switch == 1):
+                    if (self.d > dis):
+                        new_coord = (agents_list[ni].x, agents_list[ni].y)
+                        self.d = dis
+                        self.theta = self.tw_angle(self.x, self.y, new_coord[0], new_coord[1])
+                        to_return = (new_coord[0], new_coord[1], dis)
+                    else:
+                        return None
+                elif (chance < math.exp(((- self.alpha) * dis2))):
+                    new_coord = (agents_list[ni].x, agents_list[ni].y)
+                    self.d = dis
+                    self.theta = self.tw_angle(self.x, self.y, new_coord[0], new_coord[1])
+                    to_return = (new_coord[0], new_coord[1], dis)
+                    return to_return
+                else:
+                    return None
+        else:
+            return None
+
+    def tw_angle(self, x1, y1, x2, y2):
+        dx = abs((x1 - x2))
+        dy = abs((y1 - y2))
+        if (dx > 0.5):
+            if (x1 > 0.5):
+                x2 = (1 + (x2 - 0))
+            else:
+                x2 = (0 - (1 - x2))
+        if (dy > 0.5):
+            if (y1 > 0.5):
+                y2 = (1 + (y2 - 0))
+            else:
+                y2 = (0 - (1 - y2))
+        dx = (x2 - x1)
+        dy = (y2 - y1)
+        theta = math.degrees(math.atan2(dy, dx))
+        if (theta < 0.0):
+            theta += 360.0
+        return theta
+
+    def distance(self, x0, x1, upperbound):
+        delta = np.abs((x0 - x1))
+        delta = np.where((delta > (0.5 * bounds)), (delta - bounds), delta)
+        alld = np.sqrt((delta ** 2).sum(axis=(- 1)))
+        alld = list(map((lambda x: (np.inf if (x > upperbound) else x)), alld))
+        return (np.min(alld), np.argmin(alld))
+st59=>start: start main
+io61=>inputoutput: input: params, fig, ax, tick_speed
+op64=>operation: radiuss = params[3]
+op66=>operation: tc = params[0]
+op68=>operation: mono = params[1]
+op70=>operation: beta = params[2]
+op72=>operation: l = params[4]
+op74=>operation: a = params[5]
+op76=>operation: global gen_counter
+op78=>operation: global food_found
+op80=>operation: global avg_sep
+op82=>operation: avg_sep = 0
+op84=>operation: gen_counter = 0
+op86=>operation: food_found = 0
+op88=>operation: grid = Grid(radiuss, tc, mono, beta, l, a)
+op90=>operation: i = 1
+op92=>operation: all_rep = ''
+op94=>operation: mainn = ''
+op96=>operation: alphstr = ''
+op98=>operation: levystr = ''
+op100=>operation: targetslist = ''
+op102=>operation: string2 = ''
+op104=>operation: pf = 0
+op106=>operation: x1 = []
+op108=>operation: y1 = []
+op110=>operation: x2 = []
+op112=>operation: y2 = []
+op114=>operation: x3 = []
+op116=>operation: y3 = []
+cond119=>condition: while (pf < 30)
+op339=>operation: pf = (Grid.deleted_targets / (tc * 0.01))
+sub341=>subroutine: grid.update()
+cond344=>condition: if ((i % tick_speed) == 0)
+sub348=>subroutine: ax.clear()
+sub350=>subroutine: ax.set_xlim(0, 1)
+sub352=>subroutine: ax.set_ylim(0, 1)
+op354=>operation: tr_x = []
+op356=>operation: tr_y = []
+op358=>operation: tr_color = []
+cond361=>condition: for k in targets_list
+cond379=>condition: if (k.food == 1)
+sub383=>subroutine: tr_x.append(k.x)
+sub385=>subroutine: tr_y.append(k.y)
+op392=>operation: ag_x = []
+op394=>operation: ag_y = []
+op396=>operation: ag_al = []
+op398=>operation: ag_size = []
+op400=>operation: ag_color = []
+op402=>operation: ag_rw = []
+op404=>operation: ag_tw = []
+op406=>operation: ag_tx = []
+op408=>operation: ag_ty = []
+op410=>operation: ag_mu = []
+op412=>operation: ag_eff = []
+op414=>operation: edge_color = []
+op416=>operation: ag_theta = []
+cond419=>condition: for k in agents_list
+sub472=>subroutine: ag_x.append(k.x)
+sub474=>subroutine: ag_y.append(k.y)
+sub476=>subroutine: ag_al.append(k.alpha)
+sub478=>subroutine: ag_rw.append(k.rw_switch)
+sub480=>subroutine: ag_tw.append(k.tw_switch)
+sub482=>subroutine: ag_eff.append(k.eff)
+op484=>operation: theta = ((90 - k.theta) % 360)
+sub486=>subroutine: ag_theta.append(theta)
+cond489=>condition: if (k.target != 0)
+sub493=>subroutine: ag_color.append('red')
+cond498=>condition: if (k.rw_switch == 1)
+sub502=>subroutine: ag_color.append('blue')
+cond507=>condition: if (k.tw_switch == 1)
+sub511=>subroutine: ag_color.append('purple')
+sub515=>subroutine: ag_color.append('black')
+sub522=>subroutine: ax.scatter(tr_x, tr_y, c='green', s=5)
+op524=>operation: g = 0
+cond527=>operation: ax.scatter(ag_x[g], ag_y[g], marker=(3, 0, ag_theta[g]), c=ag_color[g], s=40) while  g in range(len(ag_x))
+sub539=>subroutine: plt.pause(0.01)
+sub541=>subroutine: plt.title(((((('percent_found:' + str(pf)) + ';tick:') + str(i)) + ';avg_efficiency:') + str(np.round(np.mean(ag_eff)))))
+sub543=>subroutine: fig.canvas.draw()
+sub545=>subroutine: fig.show()
+sub547=>subroutine: ax.cla()
+op552=>operation: i = (i + 1)
+op556=>operation: string = grid.output(i)
+op558=>operation: string2 = ((((((((((((((str(i) + ',') + str(tc)) + ',') + str(mono)) + ',') + str(beta)) + ',') + str(radiuss)) + ',') + str(l)) + ',') + str(a)) + ',') + string)
+io563=>inputoutput: output:  string2
+e561=>end: end function return
+
+op2->op4
+op4->op6
+op6->op8
+op8->op10
+op10->op12
+op12->op14
+op14->op16
+op16->op18
+op18->op20
+op20->op22
+op22->op24
+op24->op26
+op26->sub28
+sub28->op30
+op30->op32
+op32->op34
+op34->op36
+op36->op38
+op38->op40
+op40->op42
+op42->op44
+op44->op46
+op46->op48
+op48->op50
+op50->op52
+op52->op54
+op54->op56
+op56->st59
+st59->io61
+io61->op64
+op64->op66
+op66->op68
+op68->op70
+op70->op72
+op72->op74
+op74->op76
+op76->op78
+op78->op80
+op80->op82
+op82->op84
+op84->op86
+op86->op88
+op88->op90
+op90->op92
+op92->op94
+op94->op96
+op96->op98
+op98->op100
+op100->op102
+op102->op104
+op104->op106
+op106->op108
+op108->op110
+op110->op112
+op112->op114
+op114->op116
+op116->cond119
+cond119(yes)->op339
+op339->sub341
+sub341->cond344
+cond344(yes)->sub348
+sub348->sub350
+sub350->sub352
+sub352->op354
+op354->op356
+op356->op358
+op358->cond361
+cond361(yes)->cond379
+cond379(yes)->sub383
+sub383->sub385
+sub385->cond361
+cond379(no)->cond361
+cond361(no)->op392
+op392->op394
+op394->op396
+op396->op398
+op398->op400
+op400->op402
+op402->op404
+op404->op406
+op406->op408
+op408->op410
+op410->op412
+op412->op414
+op414->op416
+op416->cond419
+cond419(yes)->sub472
+sub472->sub474
+sub474->sub476
+sub476->sub478
+sub478->sub480
+sub480->sub482
+sub482->op484
+op484->sub486
+sub486->cond489
+cond489(yes)->sub493
+sub493->cond419
+cond489(no)->cond498
+cond498(yes)->sub502
+sub502->cond419
+cond498(no)->cond507
+cond507(yes)->sub511
+sub511->cond419
+cond507(no)->sub515
+sub515->cond419
+cond419(no)->sub522
+sub522->op524
+op524->cond527
+cond527->sub539
+sub539->sub541
+sub541->sub543
+sub543->sub545
+sub545->sub547
+sub547->op552
+op552(left)->cond119
+cond344(no)->op552
+cond119(no)->op556
+op556->op558
+op558->io563
+io563->e561
+</textarea></div>
+        <div><button id="run" type="button">Run</button> <button onclick="HelpText()">Format Help</button></div>
+        <div id="HelpTextBlock" style="display:none"><br/>Conditions can also be redirected like cond(yes, bottom) or cond(yes, right)
+... and the other symbols too... like sub1(right)<br/>
+You can also tweak the <b>diagram.drawSVG('diagram', {});</b> script in this file for more changes<br/>
+This is based on <a href="https://github.com/adrai/flowchart.js">flowchart.js on github</a> and <a href="http://flowchart.js.org">http://flowchart.js.org</a> more documentation can be found over there.
+</div><br/><div id="svgbase64"></div>
+        <div id="pngbase64"></div>
+
+        <div id="canvas"></div>
+    </body>
+</html>

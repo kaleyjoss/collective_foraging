@@ -867,12 +867,9 @@ def main(params,fig, ax, tick_speed):
             for g in range(len(ag_x)):
                 ax.scatter(ag_x[g], ag_y[g],  marker=(3, 0, ag_theta[g]), c=ag_color[g], s = 40)
 #                 ax.scatter(ag_x[g], ag_y[g],  marker=(3, 0, ag_theta[g]), c='blue', s = 40)
-            plt.pause(0.01)
+            fig.canvas.flush_events() #replaced from plt.pause(0.01) for jupyter 
             plt.title('percent_found:'+str(pf)+';tick:'+str(i)+';avg_efficiency:'+str(np.round(np.mean(ag_eff))) )
             fig.canvas.draw()
-
-
-            fig.show()
             ax.cla()
         i = i + 1
         

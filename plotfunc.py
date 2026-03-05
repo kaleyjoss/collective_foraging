@@ -70,7 +70,6 @@ def draw(w):
  
 
     var_list = [trees[0], agents[0], betas[0], mu_range[0], alpha_range[0]]
-    print('varlist:', trees[0], agents[0], betas[0], mu_range[0], alpha_range[0])
     string_ints = [str(int) for int in var_list]
     z = 0
     filename = "_".join(string_ints)
@@ -84,7 +83,7 @@ def draw(w):
         
     while z < runs:     
         paramlist = list(itertools.product(trees,agents,betas,radius_interaction, mu_range, alpha_range))
-        print(paramlist[0])
+        print('param list:', paramlist[0])
         result = main(paramlist[0], fig, ax, tick_speed)
         fig.canvas.draw()
         fig.canvas.flush_events()  # flush each frame
